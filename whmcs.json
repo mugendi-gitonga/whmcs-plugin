@@ -1,32 +1,36 @@
 {
     "schema": "1.0",
     "type": "whmcs-gateways",
-    "name": "sample-gateway-module",
+    "name": "intasendpayment",
     "license": "MIT",
     "category": "gateway",
     "description": {
-        "name": "Sample Third Party Payment Gateway Module",
-        "tagline": "Payment Gateway modules allow you to integrate payment solutions with the WHMCS platform.",
-        "long": "The sample files here demonstrate how we suggest a Third Party Payment Gateway module for WHMCS be structured and implemented.",
+        "name": "Intasend Payments",
+        "tagline": "Accept Card and M-PESA Payments using IntaSend in your WHMCS Store",
+        "long": "IntaSend provides M-PESA, Card and Google Pay Payments processing for merchants",
         "features": [
-            "Provide both client and admin facing user interfaces",
-            "Utilize hook functionality within WHMCS"
         ]
     },
     "logo": {
+
         "filename": "logo.png"
+
     },
     "support": {
-        "homepage": "https:\/\/www.whmcs.com\/", 
-        "learn_more": "https:\/\/www.whmcs.com\/tour", 
-        "email": "support@whmcs.com", 
-        "support_url": "https:\/\/support.whmcs.com\/",
-        "docs_url": "https:\/\/developers.whmcs.com\/payment-gateways\/"
+        "homepage": "https:\/\/www.intasend.com\/", 
+        "learn_more": "https:\/\/www.intasend.com\/tour", 
+        "email": "support@intasend.com", 
+        "support_url": "https:\/\/support.intasend.com\/",
+        "docs_url": "https:\/\/developers.intasend.com\/"
     },
     "authors": [
         {
-            "name": "WHMCS",
-            "homepage": "https:\/\/www.whmcs.com\/"
+            "name": "Mugendi Gitonga",
+            "email":"mugendi.gitonga@intasend.com"
+        },
+        {
+            "name": "Felix Cheruiyot",
+            "email":"felix@intasend.com"
         }
     ]
 }

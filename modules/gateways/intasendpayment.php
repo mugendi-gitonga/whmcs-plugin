@@ -39,13 +39,11 @@ if (!defined("WHMCS")) {
  *
  * @return array
  */
-function gatewaymodule_MetaData()
+function intasendpayment_MetaData()
 {
     return array(
-        'DisplayName' => 'Sample Payment Gateway Module',
+        'DisplayName' => 'InaSend Payment',
         'APIVersion' => '1.1', // Use API Version 1.1
-        'DisableLocalCreditCardInput' => true,
-        'TokenisedStorage' => false,
     );
 }
 
@@ -69,22 +67,22 @@ function gatewaymodule_MetaData()
  *
  * @return array
  */
-function gatewaymodule_config()
+function intasendpayment_config()
 {
     return array(
         // the friendly display name for a payment gateway should be
         // defined here for backwards compatibility
         'FriendlyName' => array(
             'Type' => 'System',
-            'Value' => 'Sample Third Party Payment Gateway Module',
+            'Value' => 'IntaSend Payments',
         ),
         // a text field type allows for single line text input
-        'accountID' => array(
-            'FriendlyName' => 'Account ID',
+        'publicKey' => array(
+            'FriendlyName' => 'Public Key',
             'Type' => 'text',
             'Size' => '25',
             'Default' => '',
-            'Description' => 'Enter your account ID here',
+            'Description' => 'Enter your public key here',
         ),
         // a password field type allows for masked text input
         'secretKey' => array(
@@ -92,7 +90,7 @@ function gatewaymodule_config()
             'Type' => 'password',
             'Size' => '25',
             'Default' => '',
-            'Description' => 'Enter secret key here',
+            'Description' => 'Enter your secret key here',
         ),
         // the yesno field type displays a single checkbox option
         'testMode' => array(
@@ -101,31 +99,31 @@ function gatewaymodule_config()
             'Description' => 'Tick to enable test mode',
         ),
         // the dropdown field type renders a select menu of options
-        'dropdownField' => array(
-            'FriendlyName' => 'Dropdown Field',
-            'Type' => 'dropdown',
-            'Options' => array(
-                'option1' => 'Display Value 1',
-                'option2' => 'Second Option',
-                'option3' => 'Another Option',
-            ),
-            'Description' => 'Choose one',
-        ),
+        // 'dropdownField' => array(
+        //     'FriendlyName' => 'Dropdown Field',
+        //     'Type' => 'dropdown',
+        //     'Options' => array(
+        //         'option1' => 'Display Value 1',
+        //         'option2' => 'Second Option',
+        //         'option3' => 'Another Option',
+        //     ),
+        //     'Description' => 'Choose one',
+        // ),
         // the radio field type displays a series of radio button options
-        'radioField' => array(
-            'FriendlyName' => 'Radio Field',
-            'Type' => 'radio',
-            'Options' => 'First Option,Second Option,Third Option',
-            'Description' => 'Choose your option!',
-        ),
+        // 'radioField' => array(
+        //     'FriendlyName' => 'Radio Field',
+        //     'Type' => 'radio',
+        //     'Options' => 'First Option,Second Option,Third Option',
+        //     'Description' => 'Choose your option!',
+        // ),
         // the textarea field type allows for multi-line text input
-        'textareaField' => array(
-            'FriendlyName' => 'Textarea Field',
-            'Type' => 'textarea',
-            'Rows' => '3',
-            'Cols' => '60',
-            'Description' => 'Freeform multi-line text input field',
-        ),
+        // 'textareaField' => array(
+        //     'FriendlyName' => 'Textarea Field',
+        //     'Type' => 'textarea',
+        //     'Rows' => '3',
+        //     'Cols' => '60',
+        //     'Description' => 'Freeform multi-line text input field',
+        // ),
     );
 }
 
@@ -143,15 +141,15 @@ function gatewaymodule_config()
  *
  * @return string
  */
-function gatewaymodule_link($params)
+function intasendpayment_link($params)
 {
     // Gateway Configuration Parameters
-    $accountId = $params['accountID'];
+    $publicKey = $params['publicKey'];
     $secretKey = $params['secretKey'];
     $testMode = $params['testMode'];
-    $dropdownField = $params['dropdownField'];
-    $radioField = $params['radioField'];
-    $textareaField = $params['textareaField'];
+    // $dropdownField = $params['dropdownField'];
+    // $radioField = $params['radioField'];
+    // $textareaField = $params['textareaField'];
 
     // Invoice Parameters
     $invoiceId = $params['invoiceid'];
@@ -180,31 +178,60 @@ function gatewaymodule_link($params)
     $moduleName = $params['paymentmethod'];
     $whmcsVersion = $params['whmcsVersion'];
 
-    $url = 'https://www.demopaymentgateway.com/do.payment';
+    $url = 'https://api.intasend.com/api/v1/checkout/';
 
     $postfields = array();
-    $postfields['username'] = $username;
-    $postfields['invoice_id'] = $invoiceId;
-    $postfields['description'] = $description;
+    // $postfields['username'] = $username;
+    $postfields['api_ref'] = $invoiceId;
+    // $postfields['description'] = $description;
     $postfields['amount'] = $amount;
     $postfields['currency'] = $currencyCode;
     $postfields['first_name'] = $firstname;
     $postfields['last_name'] = $lastname;
     $postfields['email'] = $email;
-    $postfields['address1'] = $address1;
-    $postfields['address2'] = $address2;
+    $postfields['address'] = $address1;
     $postfields['city'] = $city;
     $postfields['state'] = $state;
-    $postfields['postcode'] = $postcode;
+    $postfields['zipcode'] = $postcode;
     $postfields['country'] = $country;
-    $postfields['phone'] = $phone;
+    $postfields['phone_number'] = $phone;
     $postfields['callback_url'] = $systemUrl . '/modules/gateways/callback/' . $moduleName . '.php';
-    $postfields['return_url'] = $returnUrl;
+    $postfields['redirect_url'] = $systemUrl . '/modules/gateways/callback/' . $moduleName . '.php';
 
-    $htmlOutput = '<form method="post" action="' . $url . '">';
-    foreach ($postfields as $k => $v) {
-        $htmlOutput .= '<input type="hidden" name="' . $k . '" value="' . urlencode($v) . '" />';
-    }
+    $curl = curl_init();
+
+    curl_setopt_array($curl, [
+        CURLOPT_URL => $url,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_ENCODING => "",
+        CURLOPT_MAXREDIRS => 10,
+        CURLOPT_TIMEOUT => 30,
+        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+        CURLOPT_CUSTOMREQUEST => "POST",
+        CURLOPT_POSTFIELDS => json_encode($postfields),
+        CURLOPT_HTTPHEADER => [
+            "X-IntaSend-Public-API-Key: $publicKey",
+            "accept: application/json",
+            "content-type: application/json"
+        ],
+    ]);
+
+    $response = curl_exec($curl);
+    $err = curl_error($curl);
+
+    curl_close($curl);
+
+    if ($err) {
+        // echo "Request error:" . $err;
+        $redirectUrl = $systemUrl . '/error.php?error=' . $err;
+        header("Location: $redirectUrl");
+        exit;
+    } 
+    
+    $data = json_decode($response, true);
+    $response_url = $data['url'];
+
+    $htmlOutput = '<form method="get" action="' . $response_url . '"  name="f1">';
     $htmlOutput .= '<input type="submit" value="' . $langPayNow . '" />';
     $htmlOutput .= '</form>';
 
@@ -222,15 +249,15 @@ function gatewaymodule_link($params)
  *
  * @return array Transaction response status
  */
-function gatewaymodule_refund($params)
+function intasendpayment_refund($params)
 {
     // Gateway Configuration Parameters
-    $accountId = $params['accountID'];
+    $publicKey = $params['publicKey'];
     $secretKey = $params['secretKey'];
     $testMode = $params['testMode'];
-    $dropdownField = $params['dropdownField'];
-    $radioField = $params['radioField'];
-    $textareaField = $params['textareaField'];
+    // $dropdownField = $params['dropdownField'];
+    // $radioField = $params['radioField'];
+    // $textareaField = $params['textareaField'];
 
     // Transaction Parameters
     $transactionIdToRefund = $params['transid'];
@@ -259,16 +286,16 @@ function gatewaymodule_refund($params)
 
     // perform API call to initiate refund and interpret result
 
-    return array(
-        // 'success' if successful, otherwise 'declined', 'error' for failure
-        'status' => 'success',
-        // Data to be recorded in the gateway log - can be a string or array
-        'rawdata' => $responseData,
-        // Unique Transaction ID for the refund transaction
-        'transid' => $refundTransactionId,
-        // Optional fee amount for the fee value refunded
-        'fees' => $feeAmount,
-    );
+    // return array(
+    //     // 'success' if successful, otherwise 'declined', 'error' for failure
+    //     'status' => 'success',
+    //     // Data to be recorded in the gateway log - can be a string or array
+    //     'rawdata' => $responseData,
+    //     // Unique Transaction ID for the refund transaction
+    //     'transid' => $refundTransactionId,
+    //     // Optional fee amount for the fee value refunded
+    //     'fees' => $feeAmount,
+    // );
 }
 
 /**
@@ -284,15 +311,15 @@ function gatewaymodule_refund($params)
  *
  * @return array Transaction response status
  */
-function gatewaymodule_cancelSubscription($params)
+function intasendpayment_cancelSubscription($params)
 {
     // Gateway Configuration Parameters
-    $accountId = $params['accountID'];
+    $publicKey = $params['publicKey'];
     $secretKey = $params['secretKey'];
     $testMode = $params['testMode'];
-    $dropdownField = $params['dropdownField'];
-    $radioField = $params['radioField'];
-    $textareaField = $params['textareaField'];
+    // $dropdownField = $params['dropdownField'];
+    // $radioField = $params['radioField'];
+    // $textareaField = $params['textareaField'];
 
     // Subscription Parameters
     $subscriptionIdToCancel = $params['subscriptionID'];
@@ -307,10 +334,10 @@ function gatewaymodule_cancelSubscription($params)
 
     // perform API call to cancel subscription and interpret result
 
-    return array(
-        // 'success' if successful, any other value for failure
-        'status' => 'success',
-        // Data to be recorded in the gateway log - can be a string or array
-        'rawdata' => $responseData,
-    );
+    // return array(
+    //     // 'success' if successful, any other value for failure
+    //     'status' => 'success',
+    //     // Data to be recorded in the gateway log - can be a string or array
+    //     'rawdata' => $responseData,
+    // );
 }

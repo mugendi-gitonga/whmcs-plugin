@@ -27,35 +27,60 @@ $gatewayModuleName = basename(__FILE__, '.php');
 
 // Fetch gateway configuration parameters.
 $gatewayParams = getGatewayVariables($gatewayModuleName);
-
+$publicKey = $gatewayParams["publicKey"];
+$systemUrl = $gatewayParams["systemurl"];
 // Die if module is not active.
 if (!$gatewayParams['type']) {
     die("Module Not Activated");
 }
-
 // Retrieve data returned in payment gateway callback
 // Varies per payment gateway
-$success = $_POST["x_status"];
-$invoiceId = $_POST["x_invoice_id"];
-$transactionId = $_POST["x_trans_id"];
-$paymentAmount = $_POST["x_amount"];
-$paymentFee = $_POST["x_fee"];
-$hash = $_POST["x_hash"];
+$signature = $_GET["signature"];
+$transactionId = $_GET["tracking_id"];
+$checkoutID = $_GET["checkout_id"];
 
-$transactionStatus = $success ? 'Success' : 'Failure';
+//validate from intasend
+$curl = curl_init();
+$url = "https://api.intasend.com/api/v1/payment/status/";
+$args = array(
+    'invoice_id' => $tracking_id,
+    // 'signature' => $signature,
+    'checkout_id' => $checkout_id
+);
+curl_setopt_array($curl, [
+    CURLOPT_URL => $url,
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_ENCODING => "",
+    CURLOPT_MAXREDIRS => 10,
+    CURLOPT_TIMEOUT => 30,
+    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+    CURLOPT_CUSTOMREQUEST => "POST",
+    CURLOPT_POSTFIELDS => json_encode($args),
+    CURLOPT_HTTPHEADER => [
+        "X-IntaSend-Public-API-Key: $publicKey",
+        "accept: application/json",
+        "content-type: application/json"
+    ],
+]);
 
-/**
- * Validate callback authenticity.
- *
- * Most payment gateways provide a method of verifying that a callback
- * originated from them. In the case of our example here, this is achieved by
- * way of a shared secret which is used to build and compare a hash.
- */
-$secretKey = $gatewayParams['secretKey'];
-if ($hash != md5($invoiceId . $transactionId . $paymentAmount . $secretKey)) {
-    $transactionStatus = 'Hash Verification Failure';
-    $success = false;
+$response = curl_exec($curl);
+$err = curl_error($curl);
+curl_close($curl);
+
+if ($err) {
+    echo "Request error:" . $err;
+    $redirectUrl = $systemUrl . '/error.php?error=' . $err;
+    header("Location: $redirectUrl");
+    exit;
 }
+
+$data = json_decode($response, true);
+$state = $data['invoice']['state'];
+$invoiceId = $data['invoice']['api_ref'];
+$paymentAmount = $data['invoice']['value'];
+$paymentFee = $data['invoice']['charges'];
+$transactionStatus = $state === 'COMPLETE' ? 'Success' : 'Failure';
+$success = $state === 'COMPLETE' ? true : false;
 
 /**
  * Validate Callback Invoice ID.
@@ -71,7 +96,6 @@ if ($hash != md5($invoiceId . $transactionId . $paymentAmount . $secretKey)) {
  * @param string $gatewayName Gateway Name
  */
 $invoiceId = checkCbInvoiceID($invoiceId, $gatewayParams['name']);
-
 /**
  * Check Callback Transaction ID.
  *
@@ -96,7 +120,7 @@ checkCbTransID($transactionId);
  * @param string|array $debugData    Data to log
  * @param string $transactionStatus  Status
  */
-logTransaction($gatewayParams['name'], $_POST, $transactionStatus);
+logTransaction($gatewayParams["name"], $data, $transactionStatus);
 
 if ($success) {
 
@@ -111,6 +135,7 @@ if ($success) {
      * @param float $paymentFee      Payment fee (optional)
      * @param string $gatewayModule  Gateway module name
      */
+
     addInvoicePayment(
         $invoiceId,
         $transactionId,
@@ -118,5 +143,8 @@ if ($success) {
         $paymentFee,
         $gatewayModuleName
     );
-
 }
+
+$redirectUrl = $systemUrl . '/viewinvoice.php?id=' . $invoiceId;
+header("Location: $redirectUrl");
+exit;

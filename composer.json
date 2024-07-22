@@ -1,26 +1,28 @@
 {
-    "name": "whmcs/sample-gateway-module",
-    "description": "Sample Third Party Payment Gateway Module for the WHMCS Billing Automation Platform",
+    "name": "whmcs/intasend-payments",
+    "description": "The official WHMCS Plugin for IntaSend Payment Gateway",
     "keywords": [
-        "whmcs",
-        "web host automation platform",
-        "third party gateway module",
-        "gateway module",
-        "third party gateway"
+        "intasend payments",
+        "intasend whmcs",
+        "intasend gateway module",
+        "intasend payment gateway"
     ],
-    "homepage": "http://www.whmcs.com/",
+    "homepage": "http://www.intasend.com.com/",
     "license": "MIT",
     "authors": [
         {
-            "name": "WHMCS Development Team",
-            "email": "development@whmcs.com",
-            "homepage": "http://www.whmcs.com/",
+            "name": "Mugendi Gitonga",
+            "email":"mugendi.gitonga@intasend.com",
             "role": "Developer"
+        },
+        {
+            "name": "Felix Cheruiyot",
+            "email":"felix@intasend.com",
+            "role": "Lead"
         }
     ],
     "support": {
-        "email": "support@whmcs.com",
-        "forum": "http://forums.whmcs.com/",
-        "wiki": "http://docs.whmcs.com/"
+        "email": "support@intasend.com",
+        "wiki": "http://developers.intasend.com/"
     }
 }
