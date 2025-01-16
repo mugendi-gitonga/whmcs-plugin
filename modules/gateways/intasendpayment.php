@@ -168,6 +168,7 @@ function intasendpayment_link($params)
     $postcode = $params['clientdetails']['postcode'];
     $country = $params['clientdetails']['country'];
     $phone = $params['clientdetails']['phonenumber'];
+    
 
     // System Parameters
     $companyName = $params['companyname'];
@@ -177,6 +178,9 @@ function intasendpayment_link($params)
     $moduleDisplayName = $params['name'];
     $moduleName = $params['paymentmethod'];
     $whmcsVersion = $params['whmcsVersion'];
+
+    $callback_url = $systemUrl . '/modules/gateways/callback/' . $moduleName . '.php';
+    $redirect_url = $systemUrl . '/modules/gateways/callback/' . $moduleName . '.php';
 
     $url = 'https://api.intasend.com/api/v1/checkout/';
 
@@ -195,8 +199,8 @@ function intasendpayment_link($params)
     $postfields['zipcode'] = $postcode;
     $postfields['country'] = $country;
     $postfields['phone_number'] = $phone;
-    $postfields['callback_url'] = $systemUrl . '/modules/gateways/callback/' . $moduleName . '.php';
-    $postfields['redirect_url'] = $systemUrl . '/modules/gateways/callback/' . $moduleName . '.php';
+    $postfields['callback_url'] = $callback_url;
+    $postfields['redirect_url'] = $redirect_url;
 
     $curl = curl_init();
 
@@ -222,18 +226,51 @@ function intasendpayment_link($params)
     curl_close($curl);
 
     if ($err) {
-        // echo "Request error:" . $err;
-        $redirectUrl = $systemUrl . '/error.php?error=' . $err;
-        header("Location: $redirectUrl");
-        exit;
+        echo "Request error:" . $err;
+        return;
     } 
     
     $data = json_decode($response, true);
     $response_url = $data['url'];
 
-    $htmlOutput = '<form method="get" action="' . $response_url . '"  name="f1">';
-    $htmlOutput .= '<input type="submit" value="' . $langPayNow . '" />';
-    $htmlOutput .= '</form>';
+    // $htmlOutput = '<form method="get" action="' . $response_url . '"  name="f1">';
+    // $htmlOutput .= '<input type="submit" value="' . $langPayNow . '" />';
+    // $htmlOutput .= '</form>';
+
+    $htmlOutput = '<script src="https://unpkg.com/intasend-inlinejs-sdk@4.0.7/build/intasend-inline.js"></script>';
+    $htmlOutput .= '<button class="intaSendPayButton btn mb-2 btn-primary" 
+    data-amount="' . htmlspecialchars($amount, ENT_QUOTES, 'UTF-8') . '" 
+    data-api_ref="' . htmlspecialchars($invoiceId, ENT_QUOTES, 'UTF-8') . '" 
+    data-currency="' . htmlspecialchars($currencyCode, ENT_QUOTES, 'UTF-8') . '" 
+    data-first_name="' . htmlspecialchars($firstname, ENT_QUOTES, 'UTF-8') . '" 
+    data-last_name="' . htmlspecialchars($lastname, ENT_QUOTES, 'UTF-8') . '" 
+    data-email="' . htmlspecialchars($email, ENT_QUOTES, 'UTF-8') . '" 
+    data-address="' . htmlspecialchars($address1, ENT_QUOTES, 'UTF-8') . '" 
+    data-city="' . htmlspecialchars($city, ENT_QUOTES, 'UTF-8') . '" 
+    data-state="' . htmlspecialchars($state, ENT_QUOTES, 'UTF-8') . '" 
+    data-zipcode="' . htmlspecialchars($postcode, ENT_QUOTES, 'UTF-8') . '" 
+    data-country="' . htmlspecialchars($country, ENT_QUOTES, 'UTF-8') . '" 
+    data-phone_number="' . htmlspecialchars($phone, ENT_QUOTES, 'UTF-8') . '" 
+    data-callback_url="' . htmlspecialchars($callback_url, ENT_QUOTES, 'UTF-8') . '" 
+    data-redirect_url="' . $redirect_url . '">
+    Pay Now
+    </button>';
+    $htmlOutput .= '<div><a href=""><img style="height: 35px; display: block; margin: 0 auto;" src="https://intasend-public-share.s3.eu-central-1.amazonaws.com/TrustBadgesItemized/Trust+Badge+Dark.png"/></a></div>';
+    $htmlOutput .= '<script>
+        new window.IntaSend({
+        publicAPIKey: "' . htmlspecialchars($publicKey, ENT_QUOTES, 'UTF-8') . '",
+        live: "' . !$testMode . '" //set to true when going live
+        })
+        .on("COMPLETE", (results) => {
+            console.log(results)
+            console.log(results.tracking_id)
+            window.location.href = `' . $redirect_url . '/?tracking_id=${results.tracking_id}`
+        })
+        .on("FAILED", (results) => {console.log("Do something on failure", results)})
+        .on("IN-PROGRESS", (results) => {console.log("Payment in progress status", results)})
+    </script>';
+
+
 
     return $htmlOutput;
 }
